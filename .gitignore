@@ -10,9 +10,6 @@ venv/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Data files - KEEP .ipynb files and preprocessing_utils.pkl for now
-Resume.csv
-
 # Virtual environments
 ENV/
 env/
