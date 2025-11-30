@@ -5,6 +5,8 @@ import nltk
 from nltk.corpus import stopwords
 import numpy as np
 
+WORD_COUNT_THRESHOLD = 50
+
 try:
     stopwords.words('english')
 except LookupError:
@@ -66,7 +68,7 @@ model = load_model()
 ########### Streamlit App ###########
 #####################################
 
-st.title("📄 Resume Classifier")
+st.title("Resume Classifier")
 st.markdown("""
 This application classifies resumes into job categories based on their content.
 Simply paste the resume text below and click **Classify** to see the predicted job category.
@@ -82,38 +84,43 @@ resume_text = st.text_area(
 # Classify button
 if st.button("Classify Resume", type="primary"):
     if resume_text.strip():
-        with st.spinner("Analyzing resume..."):
-            normalized_text = normalize_document(resume_text)
-            prediction = model.predict([normalized_text])[0]
+        # Check word count (minimum 50 words for a reasonable paragraph)
+        word_count = len(resume_text.strip().split())
+        if word_count < WORD_COUNT_THRESHOLD:
+            st.warning(f"Please enter at least {WORD_COUNT_THRESHOLD} words for better classification accuracy. Current word count: {word_count}.")
+        else:
+            with st.spinner("Analyzing resume..."):
+                normalized_text = normalize_document(resume_text)
+                prediction = model.predict([normalized_text])[0]
 
-            # get prediction probabilities
-            try:
-                probabilities = model.predict_proba([normalized_text])[0]
-                classes = model.classes_
+                # get prediction probabilities
+                try:
+                    probabilities = model.predict_proba([normalized_text])[0]
+                    classes = model.classes_
 
-                # display results
-                st.success("Classification Complete!")
-                st.markdown(f"### Predicted Category: **{prediction}**")
-                st.markdown("#### Confidence Scores:")
+                    # display results
+                    st.success("Classification Complete!")
+                    st.markdown(f"### Predicted Category: **{prediction}**")
+                    st.markdown("#### Confidence Scores:")
 
-                sorted_indices = np.argsort(probabilities)[::-1]
+                    sorted_indices = np.argsort(probabilities)[::-1]
 
-                for idx in sorted_indices:
-                    confidence = probabilities[idx] * 100
-                    category = classes[idx]
+                    for idx in sorted_indices:
+                        confidence = probabilities[idx] * 100
+                        category = classes[idx]
 
-                    # progress bar for each category
-                    if category == prediction:
-                        st.markdown(f"**{category}**")
-                    else:
-                        st.markdown(f"{category}")
-                    st.progress(probabilities[idx])
-                    st.caption(f"{confidence:.2f}%")
+                        # progress bar for each category
+                        if category == prediction:
+                            st.markdown(f"**{category}**")
+                        else:
+                            st.markdown(f"{category}")
+                        st.progress(probabilities[idx])
+                        st.caption(f"{confidence:.2f}%")
 
-            except AttributeError:
-                st.success("Classification Complete!")
-                st.markdown(f"### Predicted Category: **{prediction}**")
-                st.info("Confidence scores are not available for this model type.")
+                except AttributeError:
+                    st.success("Classification Complete!")
+                    st.markdown(f"### Predicted Category: **{prediction}**")
+                    st.info("Confidence scores are not available for this model type.")
     else:
         st.warning("Please paste some resume text before classifying.")
 
